@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset='utf-8'>
+		<style type='text/css' media='screen, print'>
+			body  { margin: 30px 50px; font-family: sans-serif; }
+			line, polyline, path { stroke: black; fill: none; }
+		</style>
+		<title>FIDE chess players</title>
+	</head>
+	<body>
+		<h1>FIDE chess players</h1>
+		<h2>Top 20 players (open) for month </h2>
+
+		<script src='../vendor/d3-7.8.5/dist/d3.js'></script>
+		<script>
+
+var body = d3.select('body');
+
+Promise.all([
+	d3.tsv('../data/ratings.tsv', d => ({
+		id:     +d['#id'],
+		month:   d.month,
+		rating: +d.rating,
+		games:  +d.games,
+	})),
+
+	d3.tsv('../data/players.tsv', d => ({
+		id:         +d['#id'],
+		name:        d.name,
+		fed:         d.fed,
+		year:       +d.birthyear,
+		max_rating: +d.max_rating,
+		month:       d.month,
+	})),
+
+	d3.tsv('../data/titles.tsv', d => ({
+		id:     +d['#id'],
+		month:   d.month,
+		title:   d.title,
+	})),
+	
+	d3.tsv('../data/countries.tsv', d => ({
+		country:   d['#country'],
+		iso3:      d.alpha3,
+		fed:       d.ioc,
+	})),	
+		
+]).then(function(datasets) {
+	
+	// data
+	let ratings = datasets[0];                         // ratings series
+	let players = d3.index(datasets[1], p => p.id);    // players index
+	let titles = d3.group(datasets[2], t => t.id);     // titles per player
+	let countries = d3.index(datasets[3], c => c.fed); // countries index
+
+	
+	// dropdown months
+	let dropdown = body.select('h2').append('select');
+	let months = [...new Set(ratings.map(d => d.month))].sort(d3.descending); // collect the months from data set
+	var options = dropdown.selectAll('option')
+		.data(months)
+		.enter().append('option')
+			.text(d => d)
+			.attr('value', d => d);
+
+	// build country list for given year
+	var player_list = body.append('ol');	
+	function update(month) {
+		console.log(month);
+		var [y, m] = month.split('-');
+		var active_players = d3.rollup(
+			ratings.filter(d => `${y-1}-${m}` < d.month && d.month <= month), // consider active players and,
+			R => R[R.length-1],   // keep last rating
+			r => r.id             // for each player id
+		);
+				
+		var selection = player_list.selectAll('li')
+			.data(Array.from(active_players.values())
+				.sort((a, b) => d3.descending(a.rating, b.rating)) // sort according to rating
+				.slice(0, 20)                                      // keep top-20
+			)
+			.join('li')
+				.text(d => `${players.get(d.id).name} (${titles.get(d.id).map(t => t.title).join(', ')}) – ${d.rating} – ${countries.get(players.get(d.id).fed).country}`);
+	}
+	
+	dropdown.on('change', e => {
+		update(dropdown.property('value'));
+	});
+	dropdown.dispatch('change'); // force initial update
+
+});
+
+		</script>
+	</body>
+</html>
