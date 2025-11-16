@@ -26,14 +26,14 @@ The attributes present in the **players** table are:
 * **max_rating**  maximum [ELO](https://en.wikipedia.org/wiki/Elo_rating_system) rating achieved
 * **month**       month of achievement for max_rating ('%Y-%m' time format)
 
-The attributes present in the **ratings** (1 to many) table are:
+The attributes present in the **ratings** (1 to many, 5173071 records) table are:
 
 * **id**      reference to a player
 * **month**   month fot the rating ('%Y-%m' time format)
 * **rating**  ELO rating for that month
 * **games**   number of game played that month
 
-The attributes present in the **titles** (1 to many) table are:
+The attributes present in the **titles** (1 to many, 27318 records) table are:
 
 * **id**      reference to a player
 * **month**   month fot the rating ('%Y-%m' time format)
