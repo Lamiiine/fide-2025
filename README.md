@@ -1,6 +1,6 @@
 # 2025-fide
 
-International Chess Federation (FIDE) ratings
+International Chess Federation (FIDE) ratings for standard chess game
 
 
 ## Content
@@ -22,7 +22,7 @@ The attributes present in the **players** table are:
 * **name**        player's name
 * **fed**         player's chess federation (FIDE country code)
 * **sex**         {'M', 'F'}
-* **birthyear** 
+* **birthyear**   birthyear ('%Y' time format)
 * **max_rating**  maximum [ELO](https://en.wikipedia.org/wiki/Elo_rating_system) rating achieved
 * **month**       month of achievement for max_rating ('%Y-%m' time format)
 
@@ -31,12 +31,12 @@ The attributes present in the **ratings** (1 to many, 5173071 records) table are
 * **id**      reference to a player
 * **month**   month fot the rating ('%Y-%m' time format)
 * **rating**  ELO rating for that month
-* **games**   number of game played that month
+* **games**   number of games played that month
 
 The attributes present in the **titles** (1 to many, 27318 records) table are:
 
 * **id**      reference to a player
-* **month**   month fot the rating ('%Y-%m' time format)
+* **month**   month for the rating ('%Y-%m' time format)
 * **title**   [FIDE title](https://en.wikipedia.org/wiki/FIDE_titles) acquired that month
 
 The attributes present in the **countries** table are:
