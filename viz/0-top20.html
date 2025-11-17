@@ -10,7 +10,7 @@
 	</head>
 	<body>
 		<h1>FIDE chess players</h1>
-		<h2>Top 20 </h2>
+		<h4>Top 20 </h4>
 
 		<script src='../vendor/d3-7.8.5/dist/d3.js'></script>
 		<script>
@@ -61,8 +61,8 @@ Promise.all([
 
 	
 	// dropdown categories
-	let h2 = body.select('h2');
-	let dropdown_category = h2.append('select');
+	let h4 = body.select('h4');
+	let dropdown_category = h4.append('select');
 	let categories = new Map([
 		['players', (p, y) => true],
 		['women',   (p, y) => p.sex == 'F'],
@@ -75,11 +75,11 @@ Promise.all([
 			.text(d => d)
 			.attr('value', d => d);
 	
-	h2.append('text')
+	h4.append('text')
 		.text(' for month ');
 
 	// dropdown months
-	let dropdown_month = h2.append('select');
+	let dropdown_month = h4.append('select');
 	let months = [...new Set(ratings.map(d => d.month))].sort(d3.descending); // collect the months from data set
 	var options = dropdown_month.selectAll('option')
 		.data(months)
