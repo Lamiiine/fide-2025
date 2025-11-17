@@ -10,7 +10,7 @@
 	</head>
 	<body>
 		<h1>FIDE chess players</h1>
-		<h2>Top 20 players (open) for month </h2>
+		<h2>Top 20 </h2>
 
 		<script src='../vendor/d3-7.8.5/dist/d3.js'></script>
 		<script>
@@ -29,7 +29,8 @@ Promise.all([
 		id:         +d['#id'],
 		name:        d.name,
 		fed:         d.fed,
-		year:       +d.birthyear,
+		sex:         d.sex,
+		birthyear:  +d.birthyear,
 		max_rating: +d.max_rating,
 		month:       d.month,
 	})),
@@ -48,6 +49,10 @@ Promise.all([
 		
 ]).then(function(datasets) {
 	
+	const gender = d3.scaleOrdinal()
+		.domain(['M', 'F'])
+		.range(['♂', '♀']);
+	
 	// data
 	let ratings = datasets[0];                         // ratings series
 	let players = d3.index(datasets[1], p => p.id);    // players index
@@ -55,21 +60,44 @@ Promise.all([
 	let countries = d3.index(datasets[3], c => c.fed); // countries index
 
 	
+	// dropdown categories
+	let h2 = body.select('h2');
+	let dropdown_category = h2.append('select');
+	let categories = new Map([
+		['players', (p, y) => true],
+		['women',   (p, y) => p.sex == 'F'],
+		['juniors', (p, y) => y <= p.birthyear],
+		['girls',   (p, y) => y <= p.birthyear && p.sex == 'F'],
+	]);
+	var options = dropdown_category.selectAll('option')
+		.data(categories.keys())
+		.join('option')
+			.text(d => d)
+			.attr('value', d => d);
+	
+	h2.append('text')
+		.text(' for month ');
+
 	// dropdown months
-	let dropdown = body.select('h2').append('select');
+	let dropdown_month = h2.append('select');
 	let months = [...new Set(ratings.map(d => d.month))].sort(d3.descending); // collect the months from data set
-	var options = dropdown.selectAll('option')
+	var options = dropdown_month.selectAll('option')
 		.data(months)
 		.join('option')
 			.text(d => d)
 			.attr('value', d => d);
 
-	// build country list for given year
+	// build player list for given criterions
 	var player_list = body.append('ol');	
-	function update(month) {
+	function update(month, category) {
 		var [y, m] = month.split('-');
+		let junior_year = y - 20;
+		var category_filter = categories.get(category);
+		
 		var active_players = d3.rollup(
-			ratings.filter(d => `${y-1}-${m}` < d.month && d.month <= month), // consider active players and,
+			ratings
+				.filter(d => `${y-1}-${m}` < d.month && d.month <= month)      // consider active players
+				.filter(d => category_filter(players.get(d.id), junior_year)), // from the category and,
 			R => R[R.length-1],   // keep last rating
 			r => r.id             // for each player id
 		);
@@ -80,13 +108,15 @@ Promise.all([
 				.slice(0, 20)                                      // keep top-20
 			)
 			.join('li')
-				.text(d => `${players.get(d.id).name} (${titles.get(d.id).map(t => t.title).join(', ')}) – ${d.rating} – ${countries.get(players.get(d.id).fed).country}`);
+				.text(d => `${players.get(d.id).name} (${titles.get(d.id).filter(t => t.month <= month).map(t => t.title).join(', ')}) ${gender(players.get(d.id).sex)} – ${d.rating} – ${countries.get(players.get(d.id).fed).country}`);
 	}
 	
-	dropdown.on('change', e => {
-		update(dropdown.property('value'));
+	[dropdown_month, dropdown_category].forEach(d => {
+		d.on('change', e => {
+			update(dropdown_month.property('value'), dropdown_category.property('value'));
+		});
 	});
-	dropdown.dispatch('change'); // force initial update
+	dropdown_month.dispatch('change'); // force initial update
 
 });
 
