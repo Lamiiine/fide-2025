@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset='utf-8'>
+		<style type='text/css' media='screen, print'>
+			body  { margin: 30px 50px; font-family: sans-serif; }
+			line, polyline, path { stroke: black; fill: none; }
+		</style>
+		<title>Player rating</title>
+	</head>
+	<body>
+		<h1>Player rating</h1>
+
+		<script src='../vendor/d3-7.8.5/dist/d3.js'></script>
+		<script>
+
+// helpers //////////////////////////////////////////////////////////////////
+
+var params = new URLSearchParams(document.location.search);
+let player_id = +params.get('player_id') || 1503014; // Magnus Carlsen
+
+var body = d3.select('body');
+var margin = {top: 50, right: 75, bottom: 80, left: 50},
+	width = 600 - margin.left - margin.right,
+	height = 400 - margin.top - margin.bottom;
+
+var svg = body.append('svg')
+	.attr('width', width + margin.left + margin.right)
+	.attr('height', height + margin.top + margin.bottom)
+	.append('g')
+		.attr('transform', `translate(${margin.left},${margin.top})`);
+
+var x = d3.scaleTime()
+	.range([0, width]);
+
+var y = d3.scaleLinear()
+	.range([height, 0]);
+
+
+// data /////////////////////////////////////////////////////////////////////
+
+Promise.all([
+	d3.tsv('../data/ratings.tsv', d => ({
+		id:     +d['#id'],
+		month:   d.month,
+		rating: +d.rating,
+		games:  +d.games,
+	})),
+
+	d3.tsv('../data/players.tsv', d => ({
+		id:         +d['#id'],
+		name:        d.name,
+		fed:         d.fed,
+		year:       +d.birthyear,
+		max_rating: +d.max_rating,
+		month:       d.month,
+	})),
+
+	d3.tsv('../data/titles.tsv', d => ({
+		id:     +d['#id'],
+		month:   d.month,
+		title:   d.title,
+	})),
+	
+	d3.tsv('../data/countries.tsv', d => ({
+		country:   d['#country'],
+		iso3:      d.alpha3,
+		fed:       d.ioc,
+	})),	
+		
+]).then(function(datasets) {
+	
+	// data
+	let ratings = datasets[0];                         // ratings series
+	let players = d3.index(datasets[1], p => p.id);    // players index
+	let titles = d3.group(datasets[2], t => t.id);     // titles per player
+	let countries = d3.index(datasets[3], c => c.fed); // countries index
+
+	let months = [...new Set(ratings.map(d => d.month))] // collect the months from data set
+		.sort(d3.descending)
+		.map(m => new Date(m));
+	x.domain([new Date('2005-01'), new Date('2026-01')]);
+	y.domain([1000, 3000]);
+
+	let [x0, x1] = x.range();
+	let [y0, y1] = y.range();
+
+	svg.append('g')
+		.attr('transform', `translate(${x0},${y0})`)
+		.call(d3.axisBottom(x)
+			.tickFormat(d3.timeFormat('%Y-%m'))
+		);
+
+	svg.append('g')
+		.attr('transform', `translate(${x0},${y1})`)
+		.call(d3.axisLeft(y));
+
+	var player = players.get(player_id);
+	var player_ratings = ratings.filter(r => r.id == player_id);
+	
+	body.select('h1')
+		.text(`Ratings of ${player.name}`);
+	
+	svg.append('path')
+		.datum(player_ratings.sort((a, b) => d3.ascending(a.month, b.month))) // do not rely on years being sorted in input
+		.attr('class', 'elo')
+		.attr('shape-rendering', 'crispEdges')
+		.attr('d', d3.line().curve(d3.curveStepAfter)
+			.x(d => x(new Date(d.month)))
+			.y(d => y(d.rating)));
+
+});
+
+		</script>
+	</body>
+</html>
