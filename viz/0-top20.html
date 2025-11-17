@@ -17,6 +17,10 @@
 
 var body = d3.select('body');
 
+const gender = d3.scaleOrdinal()
+	.domain(['M', 'F'])
+	.range(['♂', '♀']);
+
 Promise.all([
 	d3.tsv('../data/ratings.tsv', d => ({
 		id:     +d['#id'],
@@ -48,10 +52,6 @@ Promise.all([
 	})),	
 		
 ]).then(function(datasets) {
-	
-	const gender = d3.scaleOrdinal()
-		.domain(['M', 'F'])
-		.range(['♂', '♀']);
 	
 	// data
 	let ratings = datasets[0];                         // ratings series
