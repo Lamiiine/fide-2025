@@ -55,26 +55,12 @@ Promise.all([
 		max_rating: +d.max_rating,
 		month:       d.month,
 	})),
-
-	d3.tsv('../data/titles.tsv', d => ({
-		id:     +d['#id'],
-		month:   d.month,
-		title:   d.title,
-	})),
-	
-	d3.tsv('../data/countries.tsv', d => ({
-		country:   d['#country'],
-		iso3:      d.alpha3,
-		fed:       d.ioc,
-	})),	
 		
 ]).then(function(datasets) {
 	
 	// data
 	let ratings = datasets[0];                         // ratings series
 	let players = d3.index(datasets[1], p => p.id);    // players index
-	let titles = d3.group(datasets[2], t => t.id);     // titles per player
-	let countries = d3.index(datasets[3], c => c.fed); // countries index
 
 	let months = [...new Set(ratings.map(d => d.month))] // collect the months from data set
 		.sort(d3.descending)
@@ -87,18 +73,28 @@ Promise.all([
 
 	svg.append('g')
 		.attr('transform', `translate(${x0},${y0})`)
-		.attr('text-anchor', 'end')
 		.call(d3.axisBottom(x)
 			.tickFormat(d3.timeFormat('%Y-%m'))
-		);
+		)
+		.call(g => {
+			g.selectAll('text')
+				.attr('transform', 'rotate(-15)')
+				.attr('text-anchor', 'end');
+			return g;
+		});
 	svg.append('text')
-		.attr('transform', `translate(${x1},${y0+35})`)
+		.attr('transform', `translate(${x1},${y0+40})`)
 		.attr('text-anchor', 'end')
 		.text("month");
 
 	svg.append('g')
 		.attr('transform', `translate(${x0},${y1})`)
-		.call(d3.axisLeft(y));
+		.call(d3.axisLeft(y))
+		.call(g => {
+			g.selectAll('text')
+				.attr('transform', 'rotate(-15)');
+			return g;
+		});
 	svg.append('text')
 		.attr('transform', `translate(${x0-45},${y1}) rotate(-90)`)
 		.attr('text-anchor', 'end')
