@@ -20,7 +20,7 @@ var params = new URLSearchParams(document.location.search);
 let player_id = +params.get('player_id') || 1503014; // Magnus Carlsen
 
 var body = d3.select('body');
-var margin = {top: 50, right: 75, bottom: 80, left: 50},
+var margin = {top: 50, right: 50, bottom: 80, left: 80},
 	width = 600 - margin.left - margin.right,
 	height = 400 - margin.top - margin.bottom;
 
@@ -79,7 +79,7 @@ Promise.all([
 	let months = [...new Set(ratings.map(d => d.month))] // collect the months from data set
 		.sort(d3.descending)
 		.map(m => new Date(m));
-	x.domain([new Date('2005-01'), new Date('2026-01')]);
+	x.domain([new Date('2015-01'), new Date('2026-01')]);
 	y.domain([1000, 3000]);
 
 	let [x0, x1] = x.range();
@@ -90,10 +90,18 @@ Promise.all([
 		.call(d3.axisBottom(x)
 			.tickFormat(d3.timeFormat('%Y-%m'))
 		);
+	svg.append('text')
+		.attr('transform', `translate(${x1},${y0+35})`)
+		.attr('text-anchor', 'end')
+		.text("month");
 
 	svg.append('g')
 		.attr('transform', `translate(${x0},${y1})`)
 		.call(d3.axisLeft(y));
+	svg.append('text')
+		.attr('transform', `translate(${x0-45},${y1}) rotate(-90)`)
+		.attr('text-anchor', 'end')
+		.text("ELO rating");
 
 	var player = players.get(player_id);
 	var player_ratings = ratings.filter(r => r.id == player_id);

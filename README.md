@@ -56,4 +56,5 @@ The attributes present in the **iso3** table are:
 ## Sample visualizations
 
 * **viz/0-top20.html** a HTML list of the top 20 players [D3.js](https://d3js.org/)
+* **viz/1-player.html** a line chart of the evolution of ELO rating for a given player
 * more to come
