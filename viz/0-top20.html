@@ -60,14 +60,13 @@ Promise.all([
 	let months = [...new Set(ratings.map(d => d.month))].sort(d3.descending); // collect the months from data set
 	var options = dropdown.selectAll('option')
 		.data(months)
-		.enter().append('option')
+		.join('option')
 			.text(d => d)
 			.attr('value', d => d);
 
 	// build country list for given year
 	var player_list = body.append('ol');	
 	function update(month) {
-		console.log(month);
 		var [y, m] = month.split('-');
 		var active_players = d3.rollup(
 			ratings.filter(d => `${y-1}-${m}` < d.month && d.month <= month), // consider active players and,
