@@ -107,8 +107,26 @@ Promise.all([
 				.sort((a, b) => d3.descending(a.rating, b.rating)) // sort according to rating
 				.slice(0, 20)                                      // keep top-20
 			)
-			.join('li')
-				.text(d => `${players.get(d.id).name} (${titles.get(d.id).filter(t => t.month <= month).map(t => t.title).join(', ')}) ${gender(players.get(d.id).sex)} – ${d.rating} – ${countries.get(players.get(d.id).fed).country}`);
+			.join(
+				enter => enter.append('li')
+					.call(li => {
+						li.append('a')
+							.attr('href', d => `./1-player.html?player_id=${d.id}`)
+							.text(d => players.get(d.id).name);
+						li.append('span')
+							.text(d => ` (${titles.get(d.id).filter(t => t.month <= month).map(t => t.title).join(', ')}) ${gender(players.get(d.id).sex)} – ${d.rating} – ${countries.get(players.get(d.id).fed)?.country}`);
+						return li;
+					}),
+				update => update
+					.call(li => {
+						li.select('a')
+							.attr('href', d => `./1-player.html?player_id=${d.id}`)
+							.text(d => players.get(d.id).name);
+						li.select('span')
+							.text(d => ` (${titles.get(d.id).filter(t => t.month <= month).map(t => t.title).join(', ')}) ${gender(players.get(d.id).sex)} – ${d.rating} – ${countries.get(players.get(d.id).fed)?.country}`);
+						return li;
+					})
+			)
 	}
 	
 	[dropdown_month, dropdown_category].forEach(d => {
