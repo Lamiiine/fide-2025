@@ -11,6 +11,7 @@ International Chess Federation (FIDE) ratings for standard chess game
 	* **titles.tsv**    player's titles (1 to many)
 	* **countries.tsv** country codes used by FIDE
 	* **iso3.tsv**      country codes used by ISO and regions
+	* **filter.py**     a script to extract smaller data sets
 * **viz/** sample visualisations
 * **vendor/** vendorized d3 v7.8.5 library
 
@@ -51,6 +52,29 @@ The attributes present in the **iso3** table are:
 * **country**   name of the country in english
 * **subregion** world subregion (~sub continent)
 * **region**    world region (~continent)
+
+## Smaller data sets
+
+The **data/** folder contains a **filter.py** script that allow extracting of smaller datasets for testing.
+
+	Usage: ./filter.py [-hc:e:g:y:] <suffix>
+		-h  --help             print this help message then exit
+		-c  --country <XXX>    keep players from country <XXX> (defaults to )
+		-e  --elo [min]-[max]  keep players with highest ELO between <min> and <max> (defaults to 1000-3000)
+		-g  --gender [M|F]     keep players matching gender (defaults to )
+		-y  --year [min]-[max] keep players with birthyear between <min> and <max> (defaults to 1900-2025)
+		<suffix>               use 'xxx-<suffix>.tsv' filenames for output
+
+A small dataset of ~1000 players (consisting of the U20 girls from France) and a medium dataset of ~2000 players (max ELO rating >= 2200) have been extracted using:
+
+	./filter.py -y 2005- -g F -c FRA small
+	./filter.py -e 2200+ medium
+
+* **data/**
+	* **players-small.tsv** excerpt of players with ~1000 players (U20 girls from France)
+	* **ratings-small.tsv** excerpt of ratings for the players-small data set
+	* **players-medium.tsv** excerpt of players with ~20000 players (max ELO rating >= 2200)
+	* **ratings-medium.tsv** excerpt of ratings for the players-small data set
 
 
 ## Sample visualizations
