@@ -55,7 +55,7 @@ The attributes present in the **iso3** table are:
 
 ## Smaller data sets
 
-The **data/** folder contains a **filter.py** script that allow extracting of smaller datasets for testing.
+The **data/** folder contains a **filter.py** script to extract smaller datasets for testing.
 
 	Usage: ./filter.py [-hc:e:g:y:] <suffix>
 		-h  --help             print this help message then exit
