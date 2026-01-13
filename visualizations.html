@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIDE Chess Data Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #ffffff;
+            --bg-card: #f8f9fa;
+            --bg-hover: #e9ecef;
+            --accent-primary: #2563eb;
+            --accent-secondary: #059669;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            
+            --europe: #2563eb;
+            --asia: #059669;
+            --americas: #d97706;
+            --africa: #dc2626;
+            --oceania: #7c3aed;
+            
+            --pre-covid: #2563eb;
+            --covid-era: #d97706;
+            --post-covid: #059669;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 30px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .data-badge {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 6px 14px;
+            background: rgba(5, 150, 105, 0.1);
+            border: 1px solid var(--accent-secondary);
+            border-radius: 20px;
+            color: var(--accent-secondary);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+
+        .nav-tab {
+            padding: 12px 28px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .nav-tab:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-tab.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .visualization-panel {
+            display: none;
+        }
+
+        .visualization-panel.active {
+            display: block;
+        }
+
+        .panel-header {
+            margin-bottom: 24px;
+        }
+
+        .panel-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            padding-left: 16px;
+            border-left: 4px solid var(--accent-primary);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-secondary);
+        }
+
+        .btn.primary {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .btn.primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn.active {
+            background: var(--accent-secondary);
+            color: white;
+            border-color: var(--accent-secondary);
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        select {
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 250px;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .year-display {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            min-width: 70px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .region-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .region-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            font-size: 0.9rem;
+        }
+
+        .region-chip:hover {
+            border-color: var(--text-secondary);
+        }
+
+        .region-chip.inactive {
+            opacity: 0.35;
+        }
+
+        .region-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tooltip {
+            position: fixed;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 1000;
+            font-size: 0.85rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            max-width: 260px;
+        }
+
+        .tooltip-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 3px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tooltip-row:last-child {
+            border-bottom: none;
+        }
+
+        .tooltip-label {
+            color: var(--text-secondary);
+        }
+
+        .tooltip-value {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tooltip-value.positive {
+            color: var(--accent-secondary);
+        }
+
+        .tooltip-value.negative {
+            color: var(--africa);
+        }
+
+        /* COVID Dashboard */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 260px;
+            gap: 20px;
+        }
+
+        .dashboard-main {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .dashboard-sidebar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+
+        .sidebar-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .sidebar-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-btn {
+            padding: 10px 14px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .filter-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .filter-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            border-color: var(--accent-primary);
+        }
+
+        .period-btn[data-period="pre"].active {
+            background: var(--pre-covid);
+            border-color: var(--pre-covid);
+        }
+
+        .period-btn[data-period="covid"].active {
+            background: var(--covid-era);
+            border-color: var(--covid-era);
+        }
+
+        .period-btn[data-period="post"].active {
+            background: var(--post-covid);
+            border-color: var(--post-covid);
+        }
+
+        .chart-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 14px;
+            color: var(--text-primary);
+        }
+
+        .legend-row {
+            display: flex;
+            gap: 20px;
+            margin-top: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-box {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+        }
+
+        .axis text {
+            fill: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+        }
+
+        .axis line, .axis path {
+            stroke: var(--border-color);
+        }
+
+        .grid line {
+            stroke: var(--border-color);
+            stroke-opacity: 0.5;
+        }
+
+        .bubble {
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .bubble:hover {
+            opacity: 1 !important;
+        }
+
+        .country-label {
+            font-size: 11px;
+            fill: var(--text-primary);
+            pointer-events: none;
+            font-weight: 500;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+
+        .stat-value.negative {
+            color: var(--africa);
+        }
+
+        .stat-value.positive {
+            color: var(--accent-secondary);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 1000px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .dashboard-sidebar {
+                position: static;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Info Vis Implementation</h1>
+            <p>FIDE Chess Data Visualization — Mohammed Lamine Abdellaoui</p>
+        </header>
+
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-panel="magnus">Q1: The Magnus Effect</button>
+            <button class="nav-tab" data-panel="covid">Q2: The COVID-19 Effect</button>
+        </nav>
+
+        <!-- Magnus Effect Panel -->
+        <div id="magnus-panel" class="visualization-panel active">
+            <div class="panel-header">
+                <h2 class="panel-title">Global Chess Ecosystem Evolution (2015–2025)</h2>
+            </div>
+
+            <div class="card">
+                <div class="controls-row">
+                    <div class="control-group">
+                        <button id="play-btn" class="btn btn-icon primary">▶</button>
+                        <span class="control-label">Speed</span>
+                        <select id="speed-select">
+                            <option value="2000">0.5x</option>
+                            <option value="1000" selected>1x</option>
+                            <option value="500">2x</option>
+                            <option value="250">4x</option>
+                        </select>
+                    </div>
+                    <div class="control-group" style="flex: 1;">
+                        <input type="range" id="year-slider" min="2015" max="2025" value="2015" style="flex: 1; max-width: 350px;">
+                        <span id="year-display" class="year-display">2015</span>
+                    </div>
+                    <div class="control-group">
+                        <button id="norway-btn" class="btn">🇳🇴 Follow Norway</button>
+                        <button id="reset-btn" class="btn">Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="region-filters">
+                    <span class="control-label" style="align-self: center;">Regions:</span>
+                    <div class="region-chip" data-region="Europe">
+                        <span class="region-dot" style="background: var(--europe);"></span>
+                        <span>Europe</span>
+                    </div>
+                    <div class="region-chip" data-region="Asia">
+                        <span class="region-dot" style="background: var(--asia);"></span>
+                        <span>Asia</span>
+                    </div>
+                    <div class="region-chip" data-region="Americas">
+                        <span class="region-dot" style="background: var(--americas);"></span>
+                        <span>Americas</span>
+                    </div>
+                    <div class="region-chip" data-region="Africa">
+                        <span class="region-dot" style="background: var(--africa);"></span>
+                        <span>Africa</span>
+                    </div>
+                    <div class="region-chip" data-region="Oceania">
+                        <span class="region-dot" style="background: var(--oceania);"></span>
+                        <span>Oceania</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="chart-container">
+                    <div id="magnus-loading" class="loading">Loading real FIDE data...</div>
+                    <svg id="magnus-svg" style="display: none;"></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- COVID Panel -->
+        <div id="covid-panel" class="visualization-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Pandemic Impact on Chess Registration (2018–2025)</h2>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-main">
+                    <div class="card">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-pre">--</div>
+                                <div class="stat-label">Pre-COVID Avg/Month</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value negative" id="stat-covid">--</div>
+                                <div class="stat-label">COVID Avg/Month</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value positive" id="stat-post">--</div>
+                                <div class="stat-label">Post-COVID Avg/Month</div>
+                            </div>
+                        </div>
+                        <div class="chart-title">New Player Registrations Over Time</div>
+                        <div class="chart-container">
+                            <div id="timeline-loading" class="loading">Loading registration data...</div>
+                            <svg id="timeline-svg" style="display: none;"></svg>
+                        </div>
+                        <div class="legend-row">
+                            <div class="legend-item">
+                                <div class="legend-box" style="background: var(--pre-covid);"></div>
+                                <span>Pre-COVID (2015–Feb 2020)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-box" style="background: var(--covid-era);"></div>
+                                <span>COVID Era (Mar 2020–2021)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-box" style="background: var(--post-covid);"></div>
+                                <span>Post-COVID (2022+)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="chart-title">Period Comparison: Key Metrics</div>
+                        <div class="chart-container">
+                            <svg id="comparison-svg"></svg>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="chart-title">Age Distribution by Period</div>
+                        <div class="chart-container">
+                            <svg id="age-svg"></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-sidebar">
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">Highlight Period</div>
+                        <div class="filter-buttons">
+                            <button class="filter-btn period-btn active" data-period="all">All Periods</button>
+                            <button class="filter-btn period-btn" data-period="pre">Pre-COVID</button>
+                            <button class="filter-btn period-btn" data-period="covid">COVID Era</button>
+                            <button class="filter-btn period-btn" data-period="post">Post-COVID</button>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">Gender Filter</div>
+                        <div class="filter-buttons">
+                            <button class="filter-btn gender-btn active" data-gender="all">All Genders</button>
+                            <button class="filter-btn gender-btn" data-gender="male">Male</button>
+                            <button class="filter-btn gender-btn" data-gender="female">Female</button>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">Age Group</div>
+                        <div class="filter-buttons">
+                            <button class="filter-btn age-btn active" data-age="all">All Ages</button>
+                            <button class="filter-btn age-btn" data-age="youth">Youth (&lt;18)</button>
+                            <button class="filter-btn age-btn" data-age="adult">Adult (18–40)</button>
+                            <button class="filter-btn age-btn" data-age="senior">Senior (40+)</button>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">Key Events</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6;">
+                            <p style="margin-bottom: 6px;"><strong style="color: var(--covid-era);">Mar 2020</strong> — Global lockdowns</p>
+                            <p style="margin-bottom: 6px;"><strong style="color: var(--africa);">Oct 2020</strong> — Queen's Gambit</p>
+                            <p><strong style="color: var(--post-covid);">2022</strong> — Return to normalcy</p>
+                        </div>
+                    </div>
+
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">Data Note</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.5; font-style: italic;">
+                            FIDE data reflects over-the-board tournament registrations. 
+                            The Queen's Gambit boom occurred on online platforms (Chess.com, Lichess), 
+                            while OTB play was suspended during lockdowns.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip" style="display: none;"></div>
+
+    <script>
+        // ==================== GLOBALS ====================
+        
+        const regionColors = {
+            'Europe': '#2563eb',
+            'Asia': '#059669',
+            'Americas': '#d97706',
+            'Africa': '#dc2626',
+            'Oceania': '#7c3aed',
+            'Unknown': '#6b7280'
+        };
+
+        const periodColors = {
+            'Pre-COVID': '#2563eb',
+            'COVID': '#d97706',
+            'Post-COVID': '#059669'
+        };
+
+        let realData = null;
+
+        // ==================== DATA LOADING ====================
+        
+        async function loadData() {
+            try {
+                const response = await fetch('data/processed_data.json');
+                realData = await response.json();
+                console.log('Loaded real FIDE data:', realData.metadata);
+                initMagnusChart();
+                initCovidCharts();
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                document.querySelectorAll('.loading').forEach(el => {
+                    el.textContent = 'Error loading data. Run process_real_data.py first.';
+                });
+            }
+        }
+
+        // ==================== NAVIGATION ====================
+        
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.visualization-panel').forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById(this.dataset.panel + '-panel').classList.add('active');
+            });
+        });
+
+        // ==================== TOOLTIP ====================
+        
+        const tooltip = d3.select('#tooltip');
+
+        function showTooltip(event, html) {
+            tooltip
+                .style('display', 'block')
+                .style('left', (event.clientX + 15) + 'px')
+                .style('top', (event.clientY - 10) + 'px')
+                .html(html);
+        }
+
+        function hideTooltip() {
+            tooltip.style('display', 'none');
+        }
+
+        // ==================== MAGNUS EFFECT ====================
+        
+        const magnusMargin = { top: 40, right: 40, bottom: 60, left: 70 };
+        const magnusWidth = 950 - magnusMargin.left - magnusMargin.right;
+        const magnusHeight = 500 - magnusMargin.top - magnusMargin.bottom;
+
+        let magnusSvg, magnusG, xScale, yScale, sizeScale;
+        let currentYear = 2015;
+        let isPlaying = false;
+        let animationInterval = null;
+        let activeRegions = new Set(['Europe', 'Asia', 'Americas', 'Africa', 'Oceania']);
+        let followingCountry = null;
+
+        function initMagnusChart() {
+            document.getElementById('magnus-loading').style.display = 'none';
+            document.getElementById('magnus-svg').style.display = 'block';
+
+            magnusSvg = d3.select('#magnus-svg')
+                .attr('width', magnusWidth + magnusMargin.left + magnusMargin.right)
+                .attr('height', magnusHeight + magnusMargin.top + magnusMargin.bottom);
+
+            magnusG = magnusSvg.append('g')
+                .attr('transform', `translate(${magnusMargin.left},${magnusMargin.top})`);
+
+            // Calculate scales from real data
+            const allData = realData.country_yearly;
+            const playerExtent = d3.extent(allData, d => d.players);
+            const ratingExtent = d3.extent(allData, d => d.avg_rating);
+
+            xScale = d3.scaleLog()
+                .domain([Math.max(100, playerExtent[0] * 0.8), playerExtent[1] * 1.2])
+                .range([0, magnusWidth]);
+
+            yScale = d3.scaleLinear()
+                .domain([Math.max(1300, ratingExtent[0] - 100), Math.min(2100, ratingExtent[1] + 50)])
+                .range([magnusHeight, 0]);
+
+            sizeScale = d3.scaleSqrt()
+                .domain([0, 10])
+                .range([6, 45]);
+
+            // Grid
+            magnusG.append('g')
+                .attr('class', 'grid')
+                .attr('transform', `translate(0,${magnusHeight})`)
+                .call(d3.axisBottom(xScale).tickSize(-magnusHeight).tickFormat(''));
+
+            magnusG.append('g')
+                .attr('class', 'grid')
+                .call(d3.axisLeft(yScale).tickSize(-magnusWidth).tickFormat(''));
+
+            // Axes
+            magnusG.append('g')
+                .attr('class', 'axis x-axis')
+                .attr('transform', `translate(0,${magnusHeight})`)
+                .call(d3.axisBottom(xScale).tickFormat(d => d >= 1000 ? (d/1000) + 'k' : d));
+
+            magnusG.append('g')
+                .attr('class', 'axis y-axis')
+                .call(d3.axisLeft(yScale));
+
+            magnusG.append('text')
+                .attr('x', magnusWidth / 2)
+                .attr('y', magnusHeight + 45)
+                .attr('fill', '#6b7280')
+                .attr('text-anchor', 'middle')
+                .attr('font-size', '12px')
+                .text('Number of Registered Players');
+
+            magnusG.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('x', -magnusHeight / 2)
+                .attr('y', -50)
+                .attr('fill', '#6b7280')
+                .attr('text-anchor', 'middle')
+                .attr('font-size', '12px')
+                .text('Average Peak Rating');
+
+            // Groups
+            magnusG.append('g').attr('class', 'trails-group');
+            magnusG.append('g').attr('class', 'bubbles-group');
+            magnusG.append('g').attr('class', 'labels-group');
+
+            updateMagnusChart();
+        }
+
+        function updateMagnusChart() {
+            if (!realData) return;
+
+            const yearData = realData.country_yearly.filter(d => 
+                d.year === currentYear && 
+                activeRegions.has(d.region) &&
+                d.players > 0
+            );
+
+            const bubblesG = magnusG.select('.bubbles-group');
+            const labelsG = magnusG.select('.labels-group');
+            const trailsG = magnusG.select('.trails-group');
+
+            // Update bubbles
+            const bubbles = bubblesG.selectAll('.bubble')
+                .data(yearData, d => d.fed);
+
+            bubbles.exit()
+                .transition()
+                .duration(300)
+                .attr('r', 0)
+                .remove();
+
+            const bubblesEnter = bubbles.enter()
+                .append('circle')
+                .attr('class', 'bubble')
+                .attr('cx', d => xScale(d.players))
+                .attr('cy', d => yScale(d.avg_rating))
+                .attr('r', 0)
+                .attr('fill', d => regionColors[d.region] || regionColors['Unknown'])
+                .attr('stroke', d => (d.fed === followingCountry) ? '#1f2937' : 'transparent')
+                .attr('stroke-width', d => (d.fed === followingCountry) ? 3 : 0)
+                .attr('opacity', 0.8)
+                .on('mouseover', function(event, d) {
+                    d3.select(this).attr('opacity', 1).attr('stroke', '#1f2937').attr('stroke-width', 2);
+                    
+                    // Calculate growth from 2015
+                    const data2015 = realData.country_yearly.find(x => x.fed === d.fed && x.year === 2015);
+                    let growthPct = null;
+                    if (data2015 && data2015.players > 0) {
+                        growthPct = ((d.players / data2015.players) - 1) * 100;
+                    }
+                    
+                    showTooltip(event, `
+                        <div class="tooltip-title">${d.country}</div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Region</span>
+                            <span class="tooltip-value">${d.region}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Players</span>
+                            <span class="tooltip-value">${d.players.toLocaleString()}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Avg Rating</span>
+                            <span class="tooltip-value">${d.avg_rating}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Titled Players</span>
+                            <span class="tooltip-value">${d.titled_count} (${d.titled_pct}%)</span>
+                        </div>
+                        ${growthPct !== null ? `
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Growth since 2015</span>
+                            <span class="tooltip-value ${growthPct >= 0 ? 'positive' : 'negative'}">${growthPct >= 0 ? '+' : ''}${growthPct.toFixed(0)}%</span>
+                        </div>
+                        ` : ''}
+                    `);
+                })
+                .on('mouseout', function(event, d) {
+                    d3.select(this)
+                        .attr('opacity', 0.8)
+                        .attr('stroke', d.fed === followingCountry ? '#1f2937' : 'transparent')
+                        .attr('stroke-width', d.fed === followingCountry ? 3 : 0);
+                    hideTooltip();
+                });
+
+            bubblesEnter.merge(bubbles)
+                .transition()
+                .duration(400)
+                .attr('cx', d => xScale(d.players))
+                .attr('cy', d => yScale(d.avg_rating))
+                .attr('r', d => sizeScale(d.titled_pct))
+                .attr('fill', d => regionColors[d.region] || regionColors['Unknown'])
+                .attr('stroke', d => (d.fed === followingCountry) ? '#1f2937' : 'transparent')
+                .attr('stroke-width', d => (d.fed === followingCountry) ? 3 : 0);
+
+            // Update labels for tracked country
+            const labelCountries = yearData.filter(d => d.fed === followingCountry);
+            const labels = labelsG.selectAll('.country-label').data(labelCountries, d => d.fed);
+            labels.exit().remove();
+            labels.enter()
+                .append('text')
+                .attr('class', 'country-label')
+                .merge(labels)
+                .transition()
+                .duration(400)
+                .attr('x', d => xScale(d.players))
+                .attr('y', d => yScale(d.avg_rating) - sizeScale(d.titled_pct) - 8)
+                .attr('text-anchor', 'middle')
+                .text(d => d.country);
+
+            // Draw trail
+            trailsG.selectAll('*').remove();
+            if (followingCountry) {
+                const trailData = realData.country_yearly
+                    .filter(d => d.fed === followingCountry && d.year <= currentYear)
+                    .sort((a, b) => a.year - b.year);
+
+                if (trailData.length > 1) {
+                    const line = d3.line()
+                        .x(d => xScale(d.players))
+                        .y(d => yScale(d.avg_rating))
+                        .curve(d3.curveMonotoneX);
+
+                    const color = regionColors[trailData[0].region] || '#6b7280';
+
+                    trailsG.append('path')
+                        .datum(trailData)
+                        .attr('fill', 'none')
+                        .attr('stroke', color)
+                        .attr('stroke-width', 2)
+                        .attr('stroke-dasharray', '4,4')
+                        .attr('opacity', 0.6)
+                        .attr('d', line);
+
+                    trailsG.selectAll('.trail-dot')
+                        .data(trailData)
+                        .enter()
+                        .append('circle')
+                        .attr('cx', d => xScale(d.players))
+                        .attr('cy', d => yScale(d.avg_rating))
+                        .attr('r', 4)
+                        .attr('fill', color)
+                        .attr('opacity', 0.5);
+                }
+            }
+
+            document.getElementById('year-display').textContent = currentYear;
+            document.getElementById('year-slider').value = currentYear;
+        }
+
+        // Magnus Controls
+        document.getElementById('play-btn').addEventListener('click', function() {
+            isPlaying = !isPlaying;
+            this.textContent = isPlaying ? '⏸' : '▶';
+            this.classList.toggle('active', isPlaying);
+
+            if (isPlaying) {
+                const speed = parseInt(document.getElementById('speed-select').value);
+                animationInterval = setInterval(() => {
+                    currentYear = currentYear >= 2025 ? 2015 : currentYear + 1;
+                    updateMagnusChart();
+                }, speed);
+            } else {
+                clearInterval(animationInterval);
+            }
+        });
+
+        document.getElementById('year-slider').addEventListener('input', function() {
+            currentYear = parseInt(this.value);
+            updateMagnusChart();
+        });
+
+        document.getElementById('speed-select').addEventListener('change', function() {
+            if (isPlaying) {
+                clearInterval(animationInterval);
+                const speed = parseInt(this.value);
+                animationInterval = setInterval(() => {
+                    currentYear = currentYear >= 2025 ? 2015 : currentYear + 1;
+                    updateMagnusChart();
+                }, speed);
+            }
+        });
+
+        document.getElementById('norway-btn').addEventListener('click', function() {
+            if (followingCountry === 'NOR') {
+                followingCountry = null;
+                this.classList.remove('active');
+            } else {
+                followingCountry = 'NOR';
+                this.classList.add('active');
+            }
+            updateMagnusChart();
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', function() {
+            currentYear = 2015;
+            isPlaying = false;
+            followingCountry = null;
+            clearInterval(animationInterval);
+            
+            document.getElementById('play-btn').textContent = '▶';
+            document.getElementById('play-btn').classList.remove('active');
+            document.getElementById('norway-btn').classList.remove('active');
+            
+            activeRegions = new Set(['Europe', 'Asia', 'Americas', 'Africa', 'Oceania']);
+            document.querySelectorAll('.region-chip').forEach(c => c.classList.remove('inactive'));
+            
+            updateMagnusChart();
+        });
+
+        document.querySelectorAll('.region-chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                const region = this.dataset.region;
+                if (activeRegions.has(region)) {
+                    activeRegions.delete(region);
+                    this.classList.add('inactive');
+                } else {
+                    activeRegions.add(region);
+                    this.classList.remove('inactive');
+                }
+                updateMagnusChart();
+            });
+        });
+
+        // ==================== COVID DASHBOARD ====================
+        
+        const covidMargin = { top: 30, right: 30, bottom: 50, left: 60 };
+        const covidWidth = 700 - covidMargin.left - covidMargin.right;
+        
+        let highlightPeriod = 'all';
+        let genderFilter = 'all';
+        let ageFilter = 'all';
+
+        function getFilteredValue(d) {
+            let value = d.total;
+            
+            if (genderFilter === 'male') {
+                value = d.male;
+            } else if (genderFilter === 'female') {
+                value = d.female;
+            }
+            
+            if (ageFilter === 'youth') {
+                value = Math.round(value * (d.youth / d.total));
+            } else if (ageFilter === 'adult') {
+                value = Math.round(value * (d.adult / d.total));
+            } else if (ageFilter === 'senior') {
+                value = Math.round(value * (d.senior / d.total));
+            }
+            
+            return value;
+        }
+
+        function getFilterLabel() {
+            let label = '';
+            if (genderFilter !== 'all') {
+                label += genderFilter.charAt(0).toUpperCase() + genderFilter.slice(1);
+            }
+            if (ageFilter !== 'all') {
+                if (label) label += ' ';
+                const ageLabels = { youth: 'Youth (<18)', adult: 'Adult (18-40)', senior: 'Senior (40+)' };
+                label += ageLabels[ageFilter];
+            }
+            return label || 'All Players';
+        }
+
+        function initCovidCharts() {
+            document.getElementById('timeline-loading').style.display = 'none';
+            document.getElementById('timeline-svg').style.display = 'block';
+
+            // Calculate stats
+            const preData = realData.monthly_registrations.filter(d => d.period === 'Pre-COVID');
+            const covidData = realData.monthly_registrations.filter(d => d.period === 'COVID');
+            const postData = realData.monthly_registrations.filter(d => d.period === 'Post-COVID');
+
+            const preAvg = preData.length > 0 ? Math.round(d3.mean(preData, d => d.total)) : 0;
+            const covidAvg = covidData.length > 0 ? Math.round(d3.mean(covidData, d => d.total)) : 0;
+            const postAvg = postData.length > 0 ? Math.round(d3.mean(postData, d => d.total)) : 0;
+
+            document.getElementById('stat-pre').textContent = preAvg.toLocaleString();
+            document.getElementById('stat-covid').textContent = covidAvg.toLocaleString();
+            document.getElementById('stat-post').textContent = postAvg.toLocaleString();
+
+            updateCovidCharts();
+        }
+
+        function updateCovidCharts() {
+            drawTimelineChart();
+            drawComparisonChart();
+            drawAgeChart();
+        }
+
+        function drawTimelineChart() {
+            if (!realData) return;
+
+            const timelineHeight = 250 - covidMargin.top - covidMargin.bottom;
+            
+            const svg = d3.select('#timeline-svg')
+                .attr('width', covidWidth + covidMargin.left + covidMargin.right)
+                .attr('height', timelineHeight + covidMargin.top + covidMargin.bottom);
+
+            svg.selectAll('*').remove();
+
+            // Gradient
+            const defs = svg.append('defs');
+            const gradient = defs.append('linearGradient')
+                .attr('id', 'areaGradient')
+                .attr('x1', '0%').attr('y1', '0%')
+                .attr('x2', '0%').attr('y2', '100%');
+            gradient.append('stop').attr('offset', '0%').attr('stop-color', '#2563eb').attr('stop-opacity', 0.4);
+            gradient.append('stop').attr('offset', '100%').attr('stop-color', '#2563eb').attr('stop-opacity', 0.05);
+
+            const g = svg.append('g')
+                .attr('transform', `translate(${covidMargin.left},${covidMargin.top})`);
+
+            const data = realData.monthly_registrations.map(d => ({
+                ...d,
+                date: new Date(d.year, d.mon - 1, 1),
+                value: getFilteredValue(d)
+            }));
+
+            const xScale = d3.scaleTime()
+                .domain(d3.extent(data, d => d.date))
+                .range([0, covidWidth]);
+
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.value) * 1.1])
+                .range([timelineHeight, 0]);
+
+            // Period backgrounds
+            const periods = [
+                { start: data[0]?.date, end: new Date(2020, 2, 1), period: 'Pre-COVID', color: periodColors['Pre-COVID'] },
+                { start: new Date(2020, 2, 1), end: new Date(2022, 0, 1), period: 'COVID', color: periodColors['COVID'] },
+                { start: new Date(2022, 0, 1), end: data[data.length - 1]?.date, period: 'Post-COVID', color: periodColors['Post-COVID'] }
+            ];
+
+            periods.forEach(p => {
+                if (!p.start || !p.end) return;
+                const isHighlighted = highlightPeriod === 'all' || 
+                    (highlightPeriod === 'pre' && p.period === 'Pre-COVID') ||
+                    (highlightPeriod === 'covid' && p.period === 'COVID') ||
+                    (highlightPeriod === 'post' && p.period === 'Post-COVID');
+                
+                g.append('rect')
+                    .attr('x', xScale(p.start))
+                    .attr('width', Math.max(0, xScale(p.end) - xScale(p.start)))
+                    .attr('y', 0)
+                    .attr('height', timelineHeight)
+                    .attr('fill', p.color)
+                    .attr('opacity', isHighlighted ? 0.12 : 0.04);
+            });
+
+            // Event markers
+            const events = [
+                { date: new Date(2020, 2, 1), label: 'Lockdowns' },
+                { date: new Date(2020, 9, 23), label: "Queen's Gambit" }
+            ];
+
+            events.forEach(e => {
+                g.append('line')
+                    .attr('x1', xScale(e.date))
+                    .attr('x2', xScale(e.date))
+                    .attr('y1', 0)
+                    .attr('y2', timelineHeight)
+                    .attr('stroke', '#dc2626')
+                    .attr('stroke-width', 1.5)
+                    .attr('stroke-dasharray', '4,4');
+
+                g.append('text')
+                    .attr('x', xScale(e.date))
+                    .attr('y', -6)
+                    .attr('fill', '#dc2626')
+                    .attr('font-size', '10px')
+                    .attr('text-anchor', 'middle')
+                    .text(e.label);
+            });
+
+            // Grid
+            g.append('g')
+                .attr('class', 'grid')
+                .call(d3.axisLeft(yScale).tickSize(-covidWidth).tickFormat(''));
+
+            // Area
+            const area = d3.area()
+                .x(d => xScale(d.date))
+                .y0(timelineHeight)
+                .y1(d => yScale(d.value))
+                .curve(d3.curveMonotoneX);
+
+            g.append('path')
+                .datum(data)
+                .attr('fill', 'url(#areaGradient)')
+                .attr('d', area);
+
+            // Line
+            const line = d3.line()
+                .x(d => xScale(d.date))
+                .y(d => yScale(d.value))
+                .curve(d3.curveMonotoneX);
+
+            g.append('path')
+                .datum(data)
+                .attr('fill', 'none')
+                .attr('stroke', '#2563eb')
+                .attr('stroke-width', 2)
+                .attr('d', line);
+
+            // Axes
+            g.append('g')
+                .attr('class', 'axis')
+                .attr('transform', `translate(0,${timelineHeight})`)
+                .call(d3.axisBottom(xScale).ticks(7));
+
+            g.append('g')
+                .attr('class', 'axis')
+                .call(d3.axisLeft(yScale).tickFormat(d => d >= 1000 ? (d/1000) + 'k' : d));
+
+            // Filter label
+            g.append('text')
+                .attr('x', covidWidth)
+                .attr('y', 12)
+                .attr('text-anchor', 'end')
+                .attr('fill', '#2563eb')
+                .attr('font-size', '11px')
+                .attr('font-weight', '600')
+                .text(getFilterLabel());
+
+            // Hover interaction
+            const hoverLine = g.append('line')
+                .attr('y1', 0).attr('y2', timelineHeight)
+                .attr('stroke', '#1f2937').attr('stroke-width', 1).attr('opacity', 0);
+
+            const hoverDot = g.append('circle')
+                .attr('r', 5).attr('fill', '#2563eb').attr('stroke', '#fff').attr('stroke-width', 2).attr('opacity', 0);
+
+            g.append('rect')
+                .attr('width', covidWidth).attr('height', timelineHeight)
+                .attr('fill', 'transparent')
+                .style('cursor', 'crosshair')
+                .on('mousemove', function(event) {
+                    const [mx] = d3.pointer(event);
+                    const x0 = xScale.invert(mx);
+                    const bisect = d3.bisector(d => d.date).left;
+                    const idx = Math.min(bisect(data, x0, 1), data.length - 1);
+                    const d = data[idx];
+                    
+                    if (d) {
+                        hoverLine.attr('x1', xScale(d.date)).attr('x2', xScale(d.date)).attr('opacity', 0.4);
+                        hoverDot.attr('cx', xScale(d.date)).attr('cy', yScale(d.value)).attr('opacity', 1);
+                        
+                        showTooltip(event, `
+                            <div class="tooltip-title">${d3.timeFormat('%B %Y')(d.date)}</div>
+                            <div class="tooltip-row">
+                                <span class="tooltip-label">Period</span>
+                                <span class="tooltip-value">${d.period}</span>
+                            </div>
+                            <div class="tooltip-row">
+                                <span class="tooltip-label">Filter</span>
+                                <span class="tooltip-value">${getFilterLabel()}</span>
+                            </div>
+                            <div class="tooltip-row">
+                                <span class="tooltip-label">New Players</span>
+                                <span class="tooltip-value">${d.value.toLocaleString()}</span>
+                            </div>
+                        `);
+                    }
+                })
+                .on('mouseout', function() {
+                    hoverLine.attr('opacity', 0);
+                    hoverDot.attr('opacity', 0);
+                    hideTooltip();
+                });
+        }
+
+        function drawComparisonChart() {
+            if (!realData) return;
+
+            const compHeight = 200 - covidMargin.top - covidMargin.bottom;
+            
+            const svg = d3.select('#comparison-svg')
+                .attr('width', covidWidth + covidMargin.left + covidMargin.right)
+                .attr('height', compHeight + covidMargin.top + covidMargin.bottom);
+
+            svg.selectAll('*').remove();
+
+            const g = svg.append('g')
+                .attr('transform', `translate(${covidMargin.left},${covidMargin.top})`);
+
+            // Calculate comparison data from real data
+            const preData = realData.monthly_registrations.filter(d => d.period === 'Pre-COVID');
+            const covidData = realData.monthly_registrations.filter(d => d.period === 'COVID');
+            const postData = realData.monthly_registrations.filter(d => d.period === 'Post-COVID');
+
+            const comparisonData = [
+                { 
+                    metric: 'Monthly\nRegistrations', 
+                    pre: Math.round(d3.mean(preData, d => d.total)), 
+                    covid: Math.round(d3.mean(covidData, d => d.total)), 
+                    post: Math.round(d3.mean(postData, d => d.total))
+                },
+                { 
+                    metric: 'Female\nPlayers', 
+                    pre: Math.round(d3.mean(preData, d => d.female)), 
+                    covid: Math.round(d3.mean(covidData, d => d.female)), 
+                    post: Math.round(d3.mean(postData, d => d.female))
+                },
+                { 
+                    metric: 'Youth\nPlayers', 
+                    pre: Math.round(d3.mean(preData, d => d.youth)), 
+                    covid: Math.round(d3.mean(covidData, d => d.youth)), 
+                    post: Math.round(d3.mean(postData, d => d.youth))
+                },
+                { 
+                    metric: 'Senior\nPlayers', 
+                    pre: Math.round(d3.mean(preData, d => d.senior)), 
+                    covid: Math.round(d3.mean(covidData, d => d.senior)), 
+                    post: Math.round(d3.mean(postData, d => d.senior))
+                }
+            ];
+
+            const xBand = d3.scaleBand()
+                .domain(comparisonData.map(d => d.metric))
+                .range([0, covidWidth])
+                .padding(0.3);
+
+            const xSub = d3.scaleBand()
+                .domain(['pre', 'covid', 'post'])
+                .range([0, xBand.bandwidth()])
+                .padding(0.1);
+
+            const yMax = d3.max(comparisonData, d => Math.max(d.pre, d.covid, d.post));
+            const yComp = d3.scaleLinear()
+                .domain([0, yMax * 1.15])
+                .range([compHeight, 0]);
+
+            g.append('g')
+                .attr('class', 'grid')
+                .call(d3.axisLeft(yComp).tickSize(-covidWidth).tickFormat(''));
+
+            const periods = ['pre', 'covid', 'post'];
+            const periodLabels = { pre: 'Pre-COVID', covid: 'COVID', post: 'Post-COVID' };
+
+            comparisonData.forEach(d => {
+                periods.forEach(p => {
+                    const isHighlighted = highlightPeriod === 'all' || highlightPeriod === p;
+                    
+                    g.append('rect')
+                        .attr('x', xBand(d.metric) + xSub(p))
+                        .attr('y', yComp(d[p]))
+                        .attr('width', xSub.bandwidth())
+                        .attr('height', compHeight - yComp(d[p]))
+                        .attr('fill', periodColors[periodLabels[p]])
+                        .attr('opacity', isHighlighted ? 0.85 : 0.15)
+                        .attr('rx', 3)
+                        .style('cursor', 'pointer')
+                        .on('mouseover', function(event) {
+                            d3.select(this).attr('opacity', 1);
+                            showTooltip(event, `
+                                <div class="tooltip-title">${d.metric.replace('\n', ' ')}</div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">${periodLabels[p]}</span>
+                                    <span class="tooltip-value">${d[p].toLocaleString()}</span>
+                                </div>
+                            `);
+                        })
+                        .on('mouseout', function() {
+                            d3.select(this).attr('opacity', isHighlighted ? 0.85 : 0.15);
+                            hideTooltip();
+                        });
+
+                    if (isHighlighted) {
+                        g.append('text')
+                            .attr('x', xBand(d.metric) + xSub(p) + xSub.bandwidth() / 2)
+                            .attr('y', yComp(d[p]) - 5)
+                            .attr('text-anchor', 'middle')
+                            .attr('fill', '#1f2937')
+                            .attr('font-size', '9px')
+                            .attr('font-weight', '600')
+                            .text(d[p] >= 1000 ? (d[p]/1000).toFixed(1) + 'k' : d[p]);
+                    }
+                });
+            });
+
+            g.append('g')
+                .attr('class', 'axis')
+                .attr('transform', `translate(0,${compHeight})`)
+                .call(d3.axisBottom(xBand).tickSize(0))
+                .selectAll('text')
+                .attr('font-size', '10px')
+                .each(function() {
+                    const text = d3.select(this);
+                    const words = text.text().split('\n');
+                    if (words.length > 1) {
+                        text.text('');
+                        words.forEach((word, i) => {
+                            text.append('tspan')
+                                .attr('x', 0)
+                                .attr('dy', i === 0 ? 0 : '1.1em')
+                                .text(word);
+                        });
+                    }
+                });
+
+            g.append('g')
+                .attr('class', 'axis')
+                .call(d3.axisLeft(yComp).ticks(4).tickFormat(d => d >= 1000 ? (d/1000) + 'k' : d));
+        }
+
+        function drawAgeChart() {
+            if (!realData) return;
+
+            const ageHeight = 200 - covidMargin.top - covidMargin.bottom;
+            
+            const svg = d3.select('#age-svg')
+                .attr('width', covidWidth + covidMargin.left + covidMargin.right)
+                .attr('height', ageHeight + covidMargin.top + covidMargin.bottom);
+
+            svg.selectAll('*').remove();
+
+            const g = svg.append('g')
+                .attr('transform', `translate(${covidMargin.left},${covidMargin.top})`);
+
+            // Calculate age percentages by period
+            const periods = ['Pre-COVID', 'COVID', 'Post-COVID'];
+            const ageData = periods.map(period => {
+                const periodData = realData.monthly_registrations.filter(d => d.period === period);
+                const totalYouth = d3.sum(periodData, d => d.youth);
+                const totalAdult = d3.sum(periodData, d => d.adult);
+                const totalSenior = d3.sum(periodData, d => d.senior);
+                const total = totalYouth + totalAdult + totalSenior;
+                return {
+                    period,
+                    youth: total > 0 ? (totalYouth / total * 100) : 0,
+                    adult: total > 0 ? (totalAdult / total * 100) : 0,
+                    senior: total > 0 ? (totalSenior / total * 100) : 0
+                };
+            });
+
+            const xAgeBand = d3.scaleBand()
+                .domain(periods)
+                .range([0, covidWidth])
+                .padding(0.3);
+
+            const xAgeSub = d3.scaleBand()
+                .domain(['youth', 'adult', 'senior'])
+                .range([0, xAgeBand.bandwidth()])
+                .padding(0.08);
+
+            const yAge = d3.scaleLinear()
+                .domain([0, 60])
+                .range([ageHeight, 0]);
+
+            g.append('g')
+                .attr('class', 'grid')
+                .call(d3.axisLeft(yAge).tickSize(-covidWidth).tickFormat(''));
+
+            const colors = { youth: '#059669', adult: '#2563eb', senior: '#d97706' };
+            const ageLabels = { youth: 'Youth (<18)', adult: 'Adult (18-40)', senior: 'Senior (40+)' };
+
+            ageData.forEach(d => {
+                const periodKey = d.period === 'Pre-COVID' ? 'pre' : (d.period === 'COVID' ? 'covid' : 'post');
+                const isHighlighted = highlightPeriod === 'all' || highlightPeriod === periodKey;
+
+                ['youth', 'adult', 'senior'].forEach(age => {
+                    g.append('rect')
+                        .attr('x', xAgeBand(d.period) + xAgeSub(age))
+                        .attr('y', yAge(d[age]))
+                        .attr('width', xAgeSub.bandwidth())
+                        .attr('height', ageHeight - yAge(d[age]))
+                        .attr('fill', colors[age])
+                        .attr('opacity', isHighlighted ? 0.85 : 0.15)
+                        .attr('rx', 2)
+                        .style('cursor', 'pointer')
+                        .on('mouseover', function(event) {
+                            d3.select(this).attr('opacity', 1);
+                            showTooltip(event, `
+                                <div class="tooltip-title">${ageLabels[age]}</div>
+                                <div class="tooltip-row">
+                                    <span class="tooltip-label">${d.period}</span>
+                                    <span class="tooltip-value">${d[age].toFixed(1)}%</span>
+                                </div>
+                            `);
+                        })
+                        .on('mouseout', function() {
+                            d3.select(this).attr('opacity', isHighlighted ? 0.85 : 0.15);
+                            hideTooltip();
+                        });
+
+                    if (isHighlighted && d[age] > 5) {
+                        g.append('text')
+                            .attr('x', xAgeBand(d.period) + xAgeSub(age) + xAgeSub.bandwidth() / 2)
+                            .attr('y', yAge(d[age]) - 4)
+                            .attr('text-anchor', 'middle')
+                            .attr('fill', '#1f2937')
+                            .attr('font-size', '9px')
+                            .attr('font-weight', '600')
+                            .text(d[age].toFixed(0) + '%');
+                    }
+                });
+            });
+
+            g.append('g')
+                .attr('class', 'axis')
+                .attr('transform', `translate(0,${ageHeight})`)
+                .call(d3.axisBottom(xAgeBand).tickSize(0));
+
+            g.append('g')
+                .attr('class', 'axis')
+                .call(d3.axisLeft(yAge).tickFormat(d => d + '%'));
+
+            // Legend
+            const legend = g.append('g')
+                .attr('transform', `translate(${covidWidth - 220}, -15)`);
+            
+            let lx = 0;
+            [['youth', 'Youth'], ['adult', 'Adult'], ['senior', 'Senior']].forEach(([key, label]) => {
+                legend.append('rect').attr('x', lx).attr('width', 10).attr('height', 10).attr('fill', colors[key]).attr('rx', 2);
+                legend.append('text').attr('x', lx + 14).attr('y', 9).attr('fill', '#6b7280').attr('font-size', '10px').text(label);
+                lx += 65;
+            });
+        }
+
+        // COVID Controls
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                highlightPeriod = this.dataset.period;
+                updateCovidCharts();
+            });
+        });
+
+        document.querySelectorAll('.gender-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                genderFilter = this.dataset.gender;
+                updateCovidCharts();
+            });
+        });
+
+        document.querySelectorAll('.age-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.age-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                ageFilter = this.dataset.age;
+                updateCovidCharts();
+            });
+        });
+
+        // ==================== INIT ====================
+        loadData();
+    </script>
+</body>
+</html>
