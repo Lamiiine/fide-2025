@@ -1,0 +1,40 @@
+# Ignore everything
+*
+
+# But allow JSON files
+!*.json
+
+# Allow .gitignore itself
+!.gitignore
+
+# Allow .gitattributes
+!.gitattributes
+
+# Allow README files
+!README.md
+!README.txt
+!README
+
+# Allow markdown files (optional - remove if you don't want these)
+!*.md
+
+# Allow Python files (optional - remove if you don't want these)
+!*.py
+
+# Allow HTML files (optional - remove if you don't want these)
+!*.html
+
+# Allow directories (needed to traverse to JSON files)
+!*/
+
+# Ignore vendor directory (optional - remove if you want to keep it)
+vendor/
+
+# Ignore common editor and OS files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
