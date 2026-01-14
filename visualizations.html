@@ -738,7 +738,15 @@
         
         async function loadData() {
             try {
-                const response = await fetch('data/processed_data.json');
+                // Auto-detect base path for GitHub Pages compatibility
+                const basePath = window.location.pathname.replace(/\/[^/]*$/, '') || '';
+                const dataPath = `${basePath}/data/processed_data.json`.replace(/\/+/g, '/');
+                
+                const response = await fetch(dataPath);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 realData = await response.json();
                 console.log('Loaded real FIDE data:', realData.metadata);
                 initMagnusChart();
@@ -746,7 +754,7 @@
             } catch (error) {
                 console.error('Failed to load data:', error);
                 document.querySelectorAll('.loading').forEach(el => {
-                    el.textContent = 'Error loading data. Run process_real_data.py first.';
+                    el.textContent = 'Error loading data. Make sure processed_data.json is available.';
                 });
             }
         }
